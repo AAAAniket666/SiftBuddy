@@ -66,7 +66,7 @@ This is one way to run your app — you can also build it directly from Android 
 
 Now that you have successfully run the app, let's make changes!
 
-Open `App.tsx` in your text editor of choice and make some changes. When you save, your app will automatically update and reflect these changes — this is powered by [Fast Refresh](https://reactnative.dev/docs/fast-refresh).
+Open `App.tsx` in your text editor of choice and make some changes. When you save, your app will automatically update and reflect these changes — this is powered by [Fast Refresh](https://reactnative.dev/docs/fast-refresh).
 
 When you want to forcefully reload, for example to reset the state of your app, you can perform a full reload:
 
@@ -95,3 +95,56 @@ To learn more about React Native, take a look at the following resources:
 - [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
 - [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
 - [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
+
+## Shift Swap Marketplace: Firestore Data Model
+
+### users/{userId}
+- **displayName**: string
+- **email**: string
+- **photoURL**: string (optional)
+- **role**: string ("employee", "manager", etc.)
+- **notificationTokens**: array of strings (for push notifications)
+
+### shifts/{shiftId}
+- **userId**: string (owner)
+- **startTime**: timestamp
+- **endTime**: timestamp
+- **location**: string
+- **notes**: string (optional)
+- **swapStatus**: string ("none", "pending", "swapping", "completed")
+- **swapId**: string (if involved in a swap)
+
+### swaps/{swapId}
+- **requesterId**: string (User A)
+- **requesterShiftId**: string
+- **targetUserId**: string (User B)
+- **targetShiftId**: string (initially proposed, can be null for open swap)
+- **status**: string ("pending", "accepted", "rejected", "counter", "completed", "expired")
+- **proposedBy**: string ("A" or "B")
+- **createdAt**: timestamp
+- **updatedAt**: timestamp
+- **expiration**: timestamp (optional)
+- **managerApproval**: string ("pending", "approved", "rejected", optional)
+- **history**: array of objects (for tracking counter-proposals, e.g. {by: "A", shiftId, timestamp})
+
+### swaps/{swapId}/messages/{messageId}
+- **senderId**: string
+- **text**: string
+- **timestamp**: timestamp
+
+## Shift Swap Marketplace: Advanced Features (Outline)
+
+### Email Fallback
+- Use Firebase Cloud Functions to trigger an email (via SendGrid, Mailgun, or Gmail API) if a user has not opened the app or responded to a swap request within 24 hours.
+- Store a 'lastActive' timestamp in each user document; update on app open.
+- Cloud Function checks for pending swaps and sends email reminders to inactive users.
+
+### Manager Approval
+- Add a 'managerApproval' field to swaps/{swapId} ("pending", "approved", "rejected").
+- When a swap is accepted by both users, set 'managerApproval' to "pending" and notify the manager (push/email).
+- Manager can approve/reject via a simple web dashboard or in-app screen (requires manager role in users collection).
+
+### Swap Expiration Timer
+- Add an 'expiration' timestamp to swaps/{swapId}.
+- Cloud Function runs periodically to set status to "expired" if not accepted before expiration.
+- Notify users when a swap expires.

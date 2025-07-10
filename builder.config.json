@@ -1,0 +1,6 @@
+{
+  "command": "npx react-native start",
+  "serverUrl": "http://localhost:8081",
+  "authenticateProxy": false,
+  "commitMode": "commits"
+}
