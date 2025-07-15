@@ -85,7 +85,7 @@ export default function SwapInboxScreen({ navigation }: any) {
       setUserEmails(prev => ({ ...prev, ...emails }));
     };
     if (swaps.length > 0) fetchEmails();
-  }, [swaps]);
+  }, [swaps, userEmails]);
 
   // Fetch shift end times for all swaps
   useEffect(() => {
@@ -101,14 +101,21 @@ export default function SwapInboxScreen({ navigation }: any) {
       setShiftEndTimes(prev => ({ ...prev, ...ends }));
     };
     if (swaps.length > 0) fetchShiftEnds();
-  }, [swaps]);
+  }, [swaps, shiftEndTimes]);
 
   // Filter swaps to only show those with future end times
-  const filteredSwaps = swaps.filter(s => {
+  let filteredSwaps = swaps.filter(s => {
     const requesterEnd = shiftEndTimes[s.requesterShiftId];
     const targetEnd = shiftEndTimes[s.targetShiftId];
     return (requesterEnd && new Date(requesterEnd) > now) || (targetEnd && new Date(targetEnd) > now);
   });
+
+  // Further filter by incoming/outgoing/all and pending status
+  if (filter === 'incoming') {
+    filteredSwaps = filteredSwaps.filter(s => s.targetUserId === user?.uid && s.status === 'pending');
+  } else if (filter === 'outgoing') {
+    filteredSwaps = filteredSwaps.filter(s => s.requesterId === user?.uid && s.status === 'pending');
+  }
 
   // Group swaps by recurringParentId
   const groupedSwaps: { [key: string]: Swap[] } = {};

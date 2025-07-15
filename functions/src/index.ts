@@ -1,3 +1,31 @@
+// 4. Scheduled notification before shift start
+export const notifyBeforeShift = functions.pubsub.schedule('every 5 minutes').onRun(async (context) => {
+  const now = new Date();
+  const thirtyMin = new Date(now.getTime() + 30 * 60000);
+  const sixtyMin = new Date(now.getTime() + 60 * 60000);
+  // Query all shifts starting in next 30 or 60 minutes
+  const shiftsSnap = await db.collection('shifts').where('start', '>=', now.toISOString()).where('start', '<=', sixtyMin.toISOString()).get();
+  for (const doc of shiftsSnap.docs) {
+    const shift = doc.data();
+    if (!shift.userId) continue;
+    const start = new Date(shift.start);
+    let minutesToStart = Math.round((start.getTime() - now.getTime()) / 60000);
+    let notifyType = '';
+    if (minutesToStart <= 30 && minutesToStart > 25) notifyType = '30min';
+    else if (minutesToStart <= 60 && minutesToStart > 55) notifyType = '60min';
+    if (notifyType) {
+      await sendNotificationToUser(
+        shift.userId,
+        {
+          title: `Upcoming Shift Reminder`,
+          body: `Your shift at ${shift.location || 'work'} starts in ${notifyType === '30min' ? '30' : '60'} minutes.`,
+        },
+        { shiftId: shift.shiftId, type: `shift_reminder_${notifyType}` }
+      );
+    }
+  }
+  return null;
+});
 /**
  * Import function triggers from their respective submodules:
  *
